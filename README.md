@@ -39,3 +39,5 @@ Otherwise, feel free to follow me on twitter: [@biscoditch](https:///www.twitter
 ### Special Thanks
 - Marco Grassi for partialzip
 - xerub for img4lib
+- Callum Jones for ipsw.me
+- axi0mX for ipwndfu

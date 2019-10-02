@@ -14,6 +14,11 @@ Make sure to install the requirements for this script:
 Now make sure that you correctly set [ipwndfu_path](https://github.com/shinvou/decrypt0r/blob/master/decrypt0r.py#L11) to the path where you have your ipwndfu folder and that you set [device_type](https://github.com/shinvou/decrypt0r/blob/master/decrypt0r.py#L10) to the device you'll be using this script for.
 
 If your device is in pwned dfu mode you can run the script.
+You can also download and decrypt just a single firmware by passing the -fw flag with desired fw version.
+
+> python3 decrypt0r.py -fw 12.0
+
+*NOTE: If this tool fails, just re-run it. I implemented some sanity checks so that not every firmware gets decrypted again.*
 
 ### How do I get?
 You should know that.

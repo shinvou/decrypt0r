@@ -23,6 +23,10 @@ def get_device_info(device_type):
     else:
         return None
 
+def download_file(url, file, real_filename):
+    ret = subprocess.run(['partialzip', 'download', url, file, real_filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode
+    return ret
+
 def decrypt_file(file):
     keybag = str(subprocess.run(['img4', '-i', file, '-b'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip(), 'utf-8').split('\n')[0]
     
@@ -74,7 +78,9 @@ def process_firmware(firmware):
         real_filename = file.split('/').pop()
 
         print('   [*] Downloading {0} [{1}/{2}]'.format(file, count + 1, len(files_to_process)))
-        subprocess.run(['partialzip', 'download', firmware["url"], file, real_filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        while download_file(firmware['url'], file, real_filename) != 0:
+            print('      [*] PartialZip failed, will try again ...')
 
         try:
             os.mkdir('decrypted')

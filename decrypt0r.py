@@ -23,6 +23,20 @@ def get_device_info(device_type):
     else:
         return None
 
+def list_files(url, files_to_process):
+    output = str(subprocess.run(['partialzip', 'list', url], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip(), 'utf-8').split('\n')
+
+    for path in output:
+        fixed_path = path.split(' ')[0]
+
+        if fixed_path.endswith('im4p'):
+            if "all_flash" in fixed_path or "dfu" in fixed_path:
+                files_to_process.append(fixed_path)
+
+    files_to_process = sorted(files_to_process)
+
+    return len(files_to_process)
+
 def download_file(url, file, real_filename):
     ret = subprocess.run(['partialzip', 'download', url, file, real_filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode
     return ret
@@ -59,18 +73,10 @@ def process_firmware(firmware):
     
     os.chdir(dirname)
 
-    output = str(subprocess.run(['partialzip', 'list', firmware["url"]], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip(), 'utf-8').split('\n')
-
     files_to_process = []
 
-    for path in output:
-        fixed_path = path.split(' ')[0]
-
-        if fixed_path.endswith('im4p'):
-            if "all_flash" in fixed_path or "dfu" in fixed_path:
-                files_to_process.append(fixed_path)
-
-    files_to_process = sorted(files_to_process)
+    while list_files(firmware['url'], files_to_process) == 0:
+        print('   [*] PartialZip failed listing files, will try again ...')
 
     print('   [*] Found ' + str(len(files_to_process)) + ' files to download')
 
@@ -80,7 +86,7 @@ def process_firmware(firmware):
         print('   [*] Downloading {0} [{1}/{2}]'.format(file, count + 1, len(files_to_process)))
         
         while download_file(firmware['url'], file, real_filename) != 0:
-            print('      [*] PartialZip failed, will try again ...')
+            print('      [*] PartialZip failed downloading, will try again ...')
 
         try:
             os.mkdir('decrypted')

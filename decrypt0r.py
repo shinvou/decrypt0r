@@ -8,10 +8,21 @@ import argparse
 header = {'Accept': 'application/json'}
 api_base_url = 'https://api.ipsw.me/v4/'
 
-device_type = 'iPad4,1'
 ipwndfu_path = '/Users/shinvou/Desktop/SecureRom/ipwndfu_public/'
 
 location_of_me = os.path.dirname(os.path.realpath(__file__))
+
+def get_device_type():
+    output = str(subprocess.run(['irecovery', '-m', '-v'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.strip(), 'utf-8').split('\n')
+    
+    if 'DFU Mode' not in output:
+        sys.exit('[!] No device in DFU mode found')
+    
+    device_type = output[4].split()[2][:-1]
+
+    print('[*] Found ' + device_type + ' in DFU mode')
+
+    return device_type
 
 def get_device_info(device_type):
     api_url = '{0}/device/{1}?type=ipsw'.format(api_base_url, device_type)
@@ -30,7 +41,7 @@ def list_files(url, files_to_process):
         fixed_path = path.split(' ')[0]
 
         if fixed_path.endswith('im4p'):
-            if "all_flash" in fixed_path or "dfu" in fixed_path:
+            if 'all_flash' in fixed_path or 'dfu' in fixed_path:
                 files_to_process.append(fixed_path)
 
     files_to_process = sorted(files_to_process)
@@ -44,7 +55,7 @@ def download_file(url, file, real_filename):
 def decrypt_file(file):
     keybag = str(subprocess.run(['img4', '-i', file, '-b'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip(), 'utf-8').split('\n')[0]
     
-    if keybag == "":
+    if keybag == '':
         print('      [*] We don\'t need to decrypt', file)
         new_path = 'unencrypted/' + file
         os.rename(file, new_path)
@@ -101,6 +112,7 @@ parser = argparse.ArgumentParser(description='Download and decrypt SecureRom rel
 parser.add_argument('-fw', '--firmware', help='iOS version which should be downloaded and decrypted')
 args = parser.parse_args()
 
+device_type = get_device_type()
 device_info = get_device_info(device_type)
 
 if device_info is not None:

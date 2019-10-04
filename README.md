@@ -5,15 +5,15 @@
 decrypt0r automatically downloads all relevant firmware files of all available iOS versions (for one specified device type) via partialzip and decrypts them via ipwndfu.
 
 ### How do I decrypt0r?
-First of all: decrypt0r assumes that you have  [img4](https://github.com/xerub/img4lib/) and  [partialzip](https://github.com/marcograss/partialzip) installed and exported to your $PATH.
+First of all: decrypt0r assumes that you have  [img4](https://github.com/xerub/img4lib),  [partialzip](https://github.com/marcograss/partialzip) and [irecovery](https://github.com/libimobiledevice/libirecovery) installed and exported to your $PATH.
 
 Make sure to install the requirements for this script:
 
 >  pip install requests
 
-Now make sure that you correctly set [ipwndfu_path](https://github.com/shinvou/decrypt0r/blob/master/decrypt0r.py#L11) to the path where you have your ipwndfu folder and that you set [device_type](https://github.com/shinvou/decrypt0r/blob/master/decrypt0r.py#L10) to the device you'll be using this script for.
+Now make sure that you correctly set [ipwndfu_path](https://github.com/shinvou/decrypt0r/blob/master/decrypt0r.py#L11) to the path where you have your ipwndfu folder at.
 
-If your device is in pwned dfu mode you can run the script.
+If your device is in pwned dfu mode you can run the script. It'll automatically detect the device type.
 You can also download and decrypt just a single firmware by passing the -fw flag with desired fw version.
 
 > python3 decrypt0r.py -fw 12.0
@@ -41,3 +41,4 @@ Otherwise, feel free to follow me on twitter: [@biscoditch](https:///www.twitter
 - xerub for img4lib
 - Callum Jones for ipsw.me
 - axi0mX for ipwndfu
+- Nikias Bassen for irecovery

@@ -44,6 +44,9 @@ def list_files(url, files_to_process):
             if 'all_flash' in fixed_path or 'dfu' in fixed_path:
                 files_to_process.append(fixed_path)
 
+        if 'kernelcache' in fixed_path:
+            files_to_process.append(fixed_path)
+
     files_to_process = sorted(files_to_process)
 
     return len(files_to_process)
@@ -58,6 +61,10 @@ def decrypt_file(file):
     if keybag == '':
         print('      [*] We don\'t need to decrypt', file)
         new_path = 'unencrypted/' + file
+
+        if 'kernelcache' in new_path:
+            new_path += '.im4p'
+
         os.rename(file, new_path)
         print('      [*] Moved to', new_path)
         return
@@ -65,7 +72,7 @@ def decrypt_file(file):
         print('      [*] Got keybag:', keybag)
         ivkey = str(subprocess.run([ipwndfu_path + 'ipwndfu', '--decrypt-gid', keybag], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip(), 'utf-8').split('\n')[1]
         print('      [*] Got ivkey:', ivkey)
-        new_path = 'decrypted/' + file + '.decrypted'
+        new_path = 'decrypted/' + os.path.splitext(os.path.basename(file))[0] + '.decrypted'
         subprocess.run(['img4', '-i', file, '-o', new_path, '-k', ivkey], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         print('      [*] Decrypted file saved to', new_path)
 

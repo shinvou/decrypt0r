@@ -2,8 +2,9 @@
 
 import json
 import requests
-import sys, subprocess, os
+import sys, subprocess, os, shutil
 import argparse
+from remotezip import RemoteZip
 
 header = {'Accept': 'application/json'}
 api_base_url = 'https://api.ipsw.me/v4/'
@@ -34,31 +35,37 @@ def get_device_info(device_type):
     else:
         return None
 
-def list_files(url, files_to_process):
-    output = str(subprocess.run(['partialzip', 'list', url], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip(), 'utf-8').split('\n')
+def list_files(url):
+    files_to_process = []
 
-    for path in output:
-        fixed_path = path.split(' ')[0]
+    with RemoteZip(url) as zip:
+        for zip_info in zip.infolist():
+            path = zip_info.filename
 
-        if fixed_path.endswith('im4p'):
-            if 'all_flash' in fixed_path or 'dfu' in fixed_path:
-                files_to_process.append(fixed_path)
+            if 'all_flash' in path or 'dfu' in path:
+                if path.endswith('im4p'):
+                    files_to_process.append(path)
 
-        if 'kernelcache' in fixed_path:
-            files_to_process.append(fixed_path)
+            if 'kernelcache' in path:
+                files_to_process.append(path)
+    
+    files_to_process.sort()
 
-    files_to_process = sorted(files_to_process)
-
-    return len(files_to_process)
+    return files_to_process
 
 def download_file(url, file, real_filename):
-    ret = subprocess.run(['partialzip', 'download', url, file, real_filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode
-    return ret
+    with RemoteZip(url) as zip:
+        zip.extract(file)
+    
+    os.rename(file, real_filename)
+
+    if os.path.isdir(file.split('/')[0]):
+        shutil.rmtree(file.split('/')[0])
 
 def decrypt_file(file):
     keybag = str(subprocess.run(['img4', '-i', file, '-b'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip(), 'utf-8').split('\n')[0]
     
-    if keybag == '':
+    if not keybag:
         print('      [*] We don\'t need to decrypt', file)
         new_path = 'unencrypted/' + file
 
@@ -91,20 +98,32 @@ def process_firmware(firmware):
     
     os.chdir(dirname)
 
-    files_to_process = []
-
-    while list_files(firmware['url'], files_to_process) == 0:
-        print('   [*] PartialZip failed listing files, will try again ...')
-
-    print('   [*] Found ' + str(len(files_to_process)) + ' files to download')
+    while True:
+        try:
+            files_to_process = list_files(firmware['url'])
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            print('   [!] remotezip failed listing files, will try again ...')
+        else:
+            print('   [*] Found ' + str(len(files_to_process)) + ' files to download')
+            break
 
     for count, file in enumerate(files_to_process):
         real_filename = file.split('/').pop()
 
         print('   [*] Downloading {0} [{1}/{2}]'.format(file, count + 1, len(files_to_process)))
-        
-        while download_file(firmware['url'], file, real_filename) != 0:
-            print('      [*] PartialZip failed downloading, will try again ...')
+
+        while True:
+            try:
+                download_file(firmware['url'], file, real_filename)
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except:
+                print('      [!] remotezip failed downloading file, will try again ...')
+            else:
+                print('      [*] Successfully downloaded ' + real_filename)
+                break
 
         try:
             os.mkdir('decrypted')
@@ -116,7 +135,7 @@ def process_firmware(firmware):
         decrypt_file(real_filename)
 
 parser = argparse.ArgumentParser(description='Download and decrypt SecureRom related files')
-parser.add_argument('-fw', '--firmware', help='iOS version which should be downloaded and decrypted')
+parser.add_argument('-fw', '--firmware', help='iOS version to download and decrypt')
 args = parser.parse_args()
 
 device_type = get_device_type()

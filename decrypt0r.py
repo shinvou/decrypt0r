@@ -42,11 +42,13 @@ def list_files(url):
         for zip_info in zip.infolist():
             path = zip_info.filename
 
-            if 'all_flash' in path or 'dfu' in path:
-                if path.endswith('im4p'):
-                    files_to_process.append(path)
+            if 'sep' in path:
+                continue
 
             if 'kernelcache' in path:
+                files_to_process.append(path)
+            
+            if path.endswith('im4p'):
                 files_to_process.append(path)
     
     files_to_process.sort()

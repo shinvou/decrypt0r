@@ -33,7 +33,7 @@ def get_device_info(device_type):
     if response.status_code == 200:
         return json.loads(response.content.decode('utf-8'))
     else:
-        return None
+        sys.exit('[!] API error')
 
 def list_files(url):
     files_to_process = []
@@ -64,7 +64,7 @@ def download_file(url, file, real_filename):
     if os.path.isdir(file.split('/')[0]):
         shutil.rmtree(file.split('/')[0])
 
-def decrypt_file(file):
+def decrypt_file(file, decryption_info):
     keybag = str(subprocess.run(['img4', '-i', file, '-b'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip(), 'utf-8').split('\n')[0]
     
     if not keybag:
@@ -84,6 +84,8 @@ def decrypt_file(file):
         new_path = 'decrypted/' + os.path.splitext(os.path.basename(file))[0] + '.decrypted'
         subprocess.run(['img4', '-i', file, '-o', new_path, '-k', ivkey], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         print('      [*] Decrypted file saved to', new_path)
+
+        decryption_info[file] = { 'keybag' : keybag, 'iv' : ivkey[:32], 'key' : ivkey[-64:], 'ivkey' : ivkey}
 
 def process_firmware(firmware):
     os.chdir(location_of_me)
@@ -110,6 +112,8 @@ def process_firmware(firmware):
         else:
             print('   [*] Found ' + str(len(files_to_process)) + ' files to download')
             break
+    
+    decryption_info = {}
 
     for count, file in enumerate(files_to_process):
         real_filename = file.split('/').pop()
@@ -134,7 +138,13 @@ def process_firmware(firmware):
             pass
 
         print('   [*] Decrypting', file)
-        decrypt_file(real_filename)
+        decrypt_file(real_filename, decryption_info)
+    
+    os.chdir(location_of_me)
+
+    with open(dirname + '.json', 'w') as outfile:
+        json.dump(decryption_info, outfile, indent=4)
+        print('   [*] Saved decryption information to ' + dirname + '.json')
 
 parser = argparse.ArgumentParser(description='Download and decrypt SecureRom related files')
 parser.add_argument('-fw', '--firmware', help='iOS version to download and decrypt')
@@ -142,18 +152,16 @@ args = parser.parse_args()
 
 device_type = get_device_type()
 device_info = get_device_info(device_type)
+device_firmwares = device_info['firmwares']
 
-if device_info is not None:
-    firmwares = device_info['firmwares']
-    print('[*] There are ' + str(len(firmwares)) + ' firmwares available for ' + device_type)
-else:
-    sys.exit('[!] API error')
+print('[*] There are ' + str(len(device_firmwares)) + ' firmwares available for ' + device_type)
 
 if args.firmware is not None:
-    firmware = [firmware for firmware in firmwares if firmware['version'] == args.firmware][0]
-    print('[*] Processing iOS ' + firmware['version'] + ' (only)')
-    process_firmware(firmware)
+    for firmware in device_firmwares:
+        if firmware['version'] == args.firmware:
+            print('[*] Processing iOS ' + firmware['version'] + ' (only)')
+            process_firmware(firmware)
 else:
-    for count, firmware in enumerate(firmwares):
-        print('[*] Processing iOS {0} [{1}/{2}]'.format(firmware['version'], count + 1, len(firmwares)))
+    for count, firmware in enumerate(device_firmwares):
+        print('[*] Processing iOS {0} [{1}/{2}]'.format(firmware['version'], count + 1, len(device_firmwares)))
         process_firmware(firmware)

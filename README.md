@@ -2,19 +2,24 @@
 ## Automatically download and decrypt SecureRom stuff (iBSS, iBEC, iBoot, etc.) for all iOS versions available
 
 ### Intro
-decrypt0r automatically downloads all relevant firmware files of all available iOS versions (for one specified device type) via partialzip and decrypts them via ipwndfu.
+decrypt0r automatically downloads all relevant firmware files for all available iOS versions (for the connected device) via remotezip and decrypts them via ipwndfu and img4.
 
 ### How do I decrypt0r?
-First of all: decrypt0r assumes that you have  [img4](https://github.com/xerub/img4lib) and [irecovery](https://github.com/libimobiledevice/libirecovery) installed and exported to your $PATH.
+First of all: decrypt0r assumes that you have [img4](https://github.com/xerub/img4lib) and [irecovery](https://github.com/libimobiledevice/libirecovery) installed and exported to your $PATH.
 
-Make sure to install the requirements for this script:
+Also make sure to install the requirements for this script:
 
->  pip install -r requirements.txt
+>  pip3 install -r requirements.txt
 
-Now make sure that you correctly set [ipwndfu_path](https://github.com/shinvou/decrypt0r/blob/master/decrypt0r.py#L12) to the path where you have your ipwndfu folder at.
+Further you need to set [ipwndfu_path](https://github.com/shinvou/decrypt0r/blob/master/decrypt0r.py#L12) to your ipwndfu folder path.
 
-If your device is in pwned dfu mode you can run the script. It'll automatically detect the device type.
-You can also download and decrypt just a single firmware by passing the -fw flag with desired fw version.
+If your device is in pwned dfu mode you are ready to go.
+
+>  python3 decrypt0r.py
+
+You'll find the decrypted files in the associated folder for each firmware. You'll also find a json file containing decryption info (keybag, iv, key, ivkey) for each decrypted file.
+
+If you want to download and decrypt a specific iOS version you can use the following command:
 
 > python3 decrypt0r.py -fw 12.0
 

@@ -12,14 +12,14 @@ api_base_url = 'https://api.ipsw.me/v4/'
 ipwndfu_path = '/Users/shinvou/Desktop/SecureRom/ipwndfu_public/'
 
 def get_device_type():
-    output = str(subprocess.run(['irecovery', '-m', '-v'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.strip(), 'utf-8').split('\n')
-    
-    if 'DFU Mode' not in output:
-        sys.exit('[!] No device in DFU mode found')
+    output = str(subprocess.run(['irecovery', '-q', '-v'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.strip(), 'utf-8').split('\n')
+
+    if 'PWND: checkm8' not in output:
+        sys.exit('[!] No device in pwned DFU mode found')
     
     device_type = output[4].split()[2][:-1]
 
-    print('[*] Found ' + device_type + ' in DFU mode')
+    print('[*] Found ' + device_type + ' in pwned DFU mode')
 
     return device_type
 

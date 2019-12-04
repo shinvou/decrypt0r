@@ -11,8 +11,6 @@ api_base_url = 'https://api.ipsw.me/v4/'
 
 ipwndfu_path = '/Users/shinvou/Desktop/SecureRom/ipwndfu_public/'
 
-location_of_me = os.path.dirname(os.path.realpath(__file__))
-
 def get_device_type():
     output = str(subprocess.run(['irecovery', '-m', '-v'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.strip(), 'utf-8').split('\n')
     
@@ -76,31 +74,31 @@ def decrypt_file(file, decryption_info):
 
         os.rename(file, new_path)
         print('      [*] Moved to', new_path)
-        return
     else:
         print('      [*] Got keybag:', keybag)
         ivkey = str(subprocess.run([ipwndfu_path + 'ipwndfu', '--decrypt-gid', keybag], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip(), 'utf-8').split('\n')[1]
         print('      [*] Got ivkey:', ivkey)
-        new_path = 'decrypted/' + os.path.splitext(os.path.basename(file))[0] + '.decrypted'
+        new_path = 'decrypted/' + os.path.splitext(file)[0] + '.decrypted'
         subprocess.run(['img4', '-i', file, '-o', new_path, '-k', ivkey], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         print('      [*] Decrypted file saved to', new_path)
 
         decryption_info[file] = { 'keybag' : keybag, 'iv' : ivkey[:32], 'key' : ivkey[-64:], 'ivkey' : ivkey}
 
 def process_firmware(firmware):
-    os.chdir(location_of_me)
+    os.chdir(device_working_path)
 
     dirname = firmware['version'] + '_' + firmware['buildid']
 
-    if os.path.isdir(dirname) and len(os.listdir(dirname)) != 0:
-        return
+    if os.path.isdir(dirname):
+        if os.path.isfile(dirname + '.json'):
+            return
+        else:
+            shutil.rmtree(dirname)
     
-    try:
-        os.mkdir(dirname)
-    except:
-        pass
-    
+    os.mkdir(dirname)
     os.chdir(dirname)
+    os.mkdir('decrypted')
+    os.mkdir('unencrypted')
 
     while True:
         try:
@@ -116,7 +114,7 @@ def process_firmware(firmware):
     decryption_info = {}
 
     for count, file in enumerate(files_to_process):
-        real_filename = file.split('/').pop()
+        real_filename = os.path.basename(file)
 
         print('   [*] Downloading {0} [{1}/{2}]'.format(file, count + 1, len(files_to_process)))
 
@@ -131,16 +129,10 @@ def process_firmware(firmware):
                 print('      [*] Successfully downloaded ' + real_filename)
                 break
 
-        try:
-            os.mkdir('decrypted')
-            os.mkdir('unencrypted')
-        except:
-            pass
-
         print('   [*] Decrypting', file)
         decrypt_file(real_filename, decryption_info)
     
-    os.chdir(location_of_me)
+    os.chdir(device_working_path)
 
     with open(dirname + '.json', 'w') as outfile:
         json.dump(decryption_info, outfile, indent=4)
@@ -151,6 +143,9 @@ parser.add_argument('-fw', '--firmware', help='iOS version to download and decry
 args = parser.parse_args()
 
 device_type = get_device_type()
+os.makedirs(device_type, exist_ok=True)
+device_working_path = os.path.join(os.getcwd(), device_type)
+
 device_info = get_device_info(device_type)
 device_firmwares = device_info['firmwares']
 
